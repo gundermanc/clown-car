@@ -14,6 +14,9 @@ your will.
 
 "@
 
+# Import the packager API.
+Import-Module ".\resources\clown-car-packager-api.psm1"
+
 <#
 .SYNOPSIS
 
@@ -24,19 +27,13 @@ function Write-Help
     Write-Output $helpStr
 }
 
-<#
-.SYNOPSIS
-
-Script entry point.
-#>
-function Process-Arguments($args)
+if ($args.Count -gt 1)
 {
-    if (($args.Count -eq 0) -or (($arg[0] -eq "-h") -or ($arg[0] -eq "--help") -or ($arg[0] -eq "/?")))
-    {
-        Write-Help
-        exit
-    }
+    Write-Output "Building self extractor..."
+    Write-ClownCar $args[0] $args[1] (($args | Select -Skip 2) | Get-Item)
+    Write-Output "Done"
+    exit
 }
 
-# Execute Entry Point and start program
-Process-Arguments $args
+Write-Help
+exit
