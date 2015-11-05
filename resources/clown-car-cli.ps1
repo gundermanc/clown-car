@@ -12,6 +12,8 @@ and other files into a single batch script. You can then write Powershell
 code that will run and, using an API, extract or invoke embedded files at
 your will.
 
+Usage: clown-car [out_batch_file] [entry_point_script] [files...]
+
 "@
 
 # Import the packager API.

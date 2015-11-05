@@ -37,7 +37,7 @@ function Write-ClownCar
     param(
         [Parameter(Mandatory=$true, Position=1)][string]$outFile,
         [Parameter(Mandatory=$true, Position=2)][string]$entryScript,
-        [Parameter(Mandatory=$true, Position=3)][string[]]$embeddedFiles)
+        [Parameter(Mandatory=$false, Position=3)][string[]]$embeddedFiles)
 
     [Text.StringBuilder]$buffer = New-Object -TypeName Text.StringBuilder
 
@@ -90,27 +90,31 @@ function Write-ClownCar
     {
         [void]$buffer.Append("`$files = @{")
     
-        $offset = 0
-        foreach ($file in $embeddedFiles)
+        # Embedded files is optional.
+        if ($embeddedFiles -eq $null) 
         {
-            if (-not $file.PSIsContainer)
+            $offset = 0
+            foreach ($file in $embeddedFiles)
             {
-
-                if ($file -ne $embeddedFiles[0])
+                if (-not $file.PSIsContainer)
                 {
-                    [void]$buffer.Append(';')
+
+                    if ($file -ne $embeddedFiles[0])
+                    {
+                        [void]$buffer.Append(';')
+                    }
+
+                    [void]$buffer.Append('"')
+                    [void]$buffer.Append(($file | Resolve-Path -Relative))
+                    [void]$buffer.Append('"')
+                    [void]$buffer.Append('=')
+                    [void]$buffer.Append($offset)
+                    [void]$buffer.Append(",")
+                    [void]$buffer.Append($file.Length)
+
+                    $offset += $file.Length
+
                 }
-
-                [void]$buffer.Append('"')
-                [void]$buffer.Append(($file | Resolve-Path -Relative))
-                [void]$buffer.Append('"')
-                [void]$buffer.Append('=')
-                [void]$buffer.Append($offset)
-                [void]$buffer.Append(",")
-                [void]$buffer.Append($file.Length)
-
-                $offset += $file.Length
-
             }
         }
         [void]$buffer.Append("}`r`n")
@@ -172,7 +176,10 @@ function Write-ClownCar
     }
 
     # Request FileInfo.
-    $embeddedFiles = $embeddedFiles | Get-Item
+    if ($embeddedFiles.Count -gt 0)
+    {
+        $embeddedFiles = $embeddedFiles | Get-Item
+    }
 
     # Write script headers and variables.
     Write-Header
