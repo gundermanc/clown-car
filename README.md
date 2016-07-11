@@ -51,6 +51,10 @@ self-extractors. It accepts an output name and a directory to ZIP.
 To try it out, run it with no arguments for a description of the command
 line arguments that it accepts.
 
+```
+clown-car [out_batch_file] [assets_dir]
+```
+
 ### Packager API
 To use the packager in your own scripts do the following:
 ```powershell
