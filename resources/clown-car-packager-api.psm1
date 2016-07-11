@@ -19,7 +19,7 @@ powershell.exe -ExecutionPolicy Bypass -Command `"`$__CC__pkgrArgs = '%*'.Split(
 exit
 "@
 
-# Clown car loader and API functions.
+# ClownCar loader and API functions.
 # ** MAKE SURE THAT Skip param has the same number of lines as this block and the one above generates. **
 $loaderTemplate = @"
 Write-Output "Preparing...Please wait...May take a while"
@@ -160,7 +160,7 @@ ClownCarCleanupAndExit
     {
         Trap
         {
-            Write-Output "Unable to write Clown Car ZIP section or read temporary ZIP archive"
+            Write-Output "Unable to write ClownCar ZIP section or read temporary ZIP archive"
             Break
         }
 
