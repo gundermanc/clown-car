@@ -9,7 +9,7 @@ Windows Batch file containing all files needed by the script.
 
 ## How does it work?
 ClownCar packs all of your scripts and assets into a batch script that goes
-through a bootstrapping process. All assets are packed into a batch script
+through a bootstrapping process
 that launches Powershell via the command line, instructing it to read the
 batch file as input, skipping the first few lines, which are batch
 instructions. By about line 3, the script has transitioned to a Powershell
@@ -22,28 +22,28 @@ file in the archive. Within the Main file, the developer has four or five
 ClownCar functions for interacting with the package loader.
 
 ## Value Prospects
-  1) Bypass the obnoxius security settings for Powershell that require
-     code signing. It does this by embedding your script(s) into a batch
-     file which is unrestricted and can bypass the scripting security
-     requirements. Now you can run Powershell scripts on any machine!
-  2) Obfuscates your scripts by embedding them, base64 encoded, within
-     the batch file.
-  3) Allows you to package your script's assets into a single
-     self-extracting script containing a ZIP archive with anything you
-     want!
-  4) Provides a nice and easy to use temporary directory for your script
-     to play in that is automagically deleted when you return from your
-     main function. No need to worry about cleanup, it is taken care of.
-  5) Assets are extracted to a full-path-known location so users who cd
-     to another directory will not break your scripts.
-  6) Powershell is a very powerful tool! Since it integrates with .NET,
-     you have full access to WPF and WinForms and can conceivably build
-     a rich client or server application with UI and advanced features.
-     Although this is not an ideal scenario, it does have the benefit
-     of making it really easy to spin off a small tool or application
-     without installing the Microsoft SDKs. Since Powershell is present
-     on every computer, this is a HUGE win. ClownCar provides the
-     means to package your app into one file.
+  - Bypass the obnoxius security settings for Powershell that require
+    code signing. CC does this by embedding your script(s) into a batch
+    file which is unrestricted and can bypass the scripting security
+    requirements. Now you can run Powershell scripts on any machine!
+  - Obfuscates your scripts by embedding them, base64 encoded, within
+    a ZIP in the batch file.
+  - Allows you to package your script's assets into a single
+    self-extracting script containing a ZIP archive with anything you
+    want!
+  - Provides a nice and easy to use temporary directory for your script
+    to play in that is automagically deleted when you return from your
+    main function. No need to worry about cleanup, it is taken care of.
+  - Assets are extracted to a full-path-known location so users who cd
+    to another directory will not break your scripts.
+  - Powershell is a very powerful tool! Since it integrates with .NET,
+    you have full access to WPF and WinForms and can conceivably build
+    a rich client or server application with UI and advanced features.
+    Although this is not an ideal scenario, it does have the benefit
+    of making it really easy to spin off a small tool or application
+    without installing the Microsoft SDKs. Since Powershell is present
+    on every computer, this is a HUGE win. ClownCar provides the
+    means to package your app into one file.
 
 ## Command Line Packager
 The command line packager, clown-car.bat, is the tool that produces
@@ -53,12 +53,12 @@ line arguments that it accepts.
 
 ### Packager API
 To use the packager in your own scripts do the following:
-'''powershell
+```powershell
 
 Import-Module "resources\clown-car-packager-api.psm1"
 Write-ClownCar "outfile.bat" "package_srcs_dir"
 
-'''
+```
 
 ### ClownCar loader functions
 - Get-ClownCarDirectory: Gets the extracted ZIP directory.
@@ -72,7 +72,7 @@ Write-ClownCar "outfile.bat" "package_srcs_dir"
 ## Why make something so seemingly pointless?
 ClownCar was created for the convenience of the network admin or busy dev
 who needs to be able to build portable, easily modified tools for use across
-many machines. It has several marked advantages over tools made in programming
+many machines. It has several marked advantages over tools made with programming
 languages. For one, Powershell is portable to all Windows workstations and
 servers and is rather lightweight. Furthermore, the Powershell ISE (the IDE for
 Powershell) comes preinstalled on all Windows machines. This means that tweaking
