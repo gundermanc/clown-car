@@ -11,7 +11,7 @@ Clown Car is a series of hacky scripts that allow you to:
   1) Bypass the obnoxius security settings for Powershell that require
      code signing. It does this by embedding your script(s) into a batch
      file which is unrestricted and can bypass the scripting security
-     requirements.
+     requirements. Now you can run Powershell scripts on any machine!
   2) Obfuscates your scripts by embedding them, base64 encoded, within
      the batch file.
   3) Allows you to package your script's assets into a single
@@ -19,8 +19,10 @@ Clown Car is a series of hacky scripts that allow you to:
      want!
   4) Provides a nice and easy to use temporary directory for your script
      to play in that is automagically deleted when you return from your
-     main function.
-  5) Powershell is a very powerful tool! Since it integrates with .NET,
+     main function. No need to worry about cleanup, it is taken care of.
+  5) Assets are extracted to a full-path-known location so users who cd
+     to another directory will not break your scripts.
+  6) Powershell is a very powerful tool! Since it integrates with .NET,
      you have full access to WPF and WinForms and can conceivably build
      a rich client or server application with UI and advanced features.
      Although this is not an ideal scenario, it does have the benefit
