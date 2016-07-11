@@ -2,200 +2,183 @@
 # Packager API
 # By: Christian Gunderman
 
-# Format template for the batch section of the archive that executes the powershell.
-$batchTemplateFormat = @"
-@echo off`r`n
-powershell.exe -ExecutionPolicy Bypass -Command `"`$pkgrArgs = '%*'.Split(' '); `$scriptName = '%0'; (Get-Content('%0') | Select -Skip {0}) -Join [Environment]::NewLine | Invoke-Expression`"`r`n
-exit`r`n
-"@
+# Temporary ZIP archive name.
+$tmpZipFileName = $MyInvocation.MyCommand.Path + "tmp.archive.zip"
 
-$exitScript = @"
+# ** MAKE SURE THAT Skip param has the same number of lines as this block generates. **
+$batchTemplate = @"
+@echo off
+powershell.exe -ExecutionPolicy Bypass -Command `"`$__CC__pkgrArgs = '%*'.Split(' '); `$__CC__scriptName = '%0'; (Get-Content('%0') | Select -Skip 3) -Join [Environment]::NewLine | Invoke-Expression`"
 exit
 "@
 
-<#
-.SYNOPSIS
+# Clown car loader and API functions.
+# ** MAKE SURE THAT Skip param has the same number of lines as this block and the one above generates. **
+$loaderTemplate = @"
+Write-Output "Preparing...Please wait...May take a while"
 
-Builds a self extracting batch file scripted with Powershell.
+`$__CC__tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid())
+New-Item -ItemType Directory -Path (`$__CC__tmpDir) -Force | Out-Null
+`$__CC__zipPath = Join-Path `$__CC__tmpDir "tmp.archive.zip"
+[System.IO.File]::WriteAllBytes(`$__CC__zipPath, [Convert]::FromBase64String((Get-Content `$__CC__scriptName | Select -Skip 29)))
+Add-Type -Assembly System.IO.Compression.FileSystem -ErrorAction Stop
+[System.IO.Compression.ZipFile]::ExtractToDirectory(`$__CC__zipPath, `$__CC__tmpDir)
+`$__CC__mainPath = Join-Path `$__CC__tmpDir "main.psm1"
+Import-Module `$__CC__mainPath
 
-.DESCRIPTION
+function Get-ClownCarDirectory { return `$__CC__tmpDir }
+function Get-ClownCarScriptName { return `$__CC__scriptName }
+function Get-ClownCarArguments { return `$__CC__pkgrArgs }
+function Get-ClownCarZipPath { return `$__CC__zipPath }
+function Get-ClownCarMainPath { return `$__CC__mainPath }
+function ClownCarCleanupAndExit
+{ 
+    Remove-Item -Recurse -Force `$__CC__tmpDir
+    exit
+}
+function ClownCarExitWithoutCleanup { exit }
 
-Builds a batch file that bypasses the Windows Powershell execution policy
-and launches the internal Powershell script.
+Main
 
-.PARAMETER outFile
+ClownCarCleanupAndExit
+"@
 
-The file name of the output batch script.
+function Add-Environment
+{
+    Trap
+    {
+        Write-Output "Unable to load System.IO.Compression .NET assembly."
+        Break
+    }
 
-.PARAMETER embeddedFiles
+    Add-Type -Assembly System.IO.Compression.FileSystem -ErrorAction Stop
+}
 
-An array of file names of files to package within the script.
-#>
+function Write-ZipArchiveFromDirectory($zipArchivePath, $sourcePath)
+{
+    Trap
+    {
+        Write-Output "Unable to zip files"
+        Break
+    }
+
+    try
+    {
+        $compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
+        [System.IO.Compression.ZipFile]::CreateFromDirectory($sourcePath, $zipArchivePath, $compressionLevel, $false)
+    }
+    catch [System.IO.IOException], [UnauthorizedAccessException]
+    {
+        Write-Output "Unable to create zip archive: " $_.Exception.Message
+        Break
+    }
+}
+
+function Remove-TemporaryFile($file)
+{
+    Trap
+    {
+        Write-Output "Unable to delete " $file
+        Break
+    }
+
+    if (Test-Path $file)
+    {
+        Remove-Item $file
+    }
+}
+
+function Get-LineCount
+{
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true, Position=1)][string]$string)
+
+    $count = 0
+    $Local:index = 0
+
+    while ($index -ne -1)
+    {
+        $index = $string.IndexOf([string]"`r`n", $Local:index + 1)
+
+        if ($Local:index -ne -1)
+        {
+            $count++
+        }
+    }
+
+    return $count
+}
+
+function Write-BatchFileHeader($outFile)
+{
+    Trap
+    {
+        Write-Output "Unable to write batch file header"
+        Break
+    }
+
+    $batchTemplate | Out-File -FilePath $outFile -Encoding oem
+}
+
+function Write-Loader($outFile)
+{
+    Trap
+    {
+        Write-Output "Unable to write encoded loader portion"
+        Break
+    }
+
+    #$encoding = [System.Text.Encoding]::UTF8
+
+    #$bytes = $encoding.GetBytes($encodedLoaderTemplate)
+
+    $loaderTemplate | Out-File -FilePath $outFile -Append -Encoding oem
+}
+
+function Write-ZipClownCarSection($outFile)
+{
+    Trap
+    {
+        Write-Output "Unable to write Clown Car ZIP section or read temporary ZIP archive"
+        Break
+    }
+
+    $bytes = [System.IO.File]::ReadAllBytes($tmpZipFileName)
+
+    [Convert]::ToBase64String($bytes) | Out-File -FilePath $outFile -Append -Encoding oem
+}
+
 function Write-ClownCar
 {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true, Position=1)][string]$outFile,
-        [Parameter(Mandatory=$true, Position=2)][string]$entryScript,
-        [Parameter(Mandatory=$false, Position=3)][string[]]$embeddedFiles)
-
-    [Text.StringBuilder]$buffer = New-Object -TypeName Text.StringBuilder
-
-    <#
-    .SYNOPSIS
-
-    Gets the number of lines in a string.
-
-    .PARAMETER string
-
-    The string to count the lines of.
-    #>
-    function Get-LineCount
-    {
-        [CmdletBinding()]
-        param([Parameter(Mandatory=$true, Position=1)][string]$string)
-
-        $count = 0
-        $Local:index = 0
-
-        while ($index -ne -1)
-        {
-            $index = $string.IndexOf([string]"`r`n", $Local:index + 1)
-
-            if ($Local:index -ne -1)
-            {
-                $count++
-            }
-        }
-
-        return $count
-    }
-
-    <#
-    .SYNOPSIS
-
-    Writes the Clown Car Batch script header to the file.
-    #>
-    function Write-Header 
-    {
-        [void]$buffer.Append([string]::Format([string]$BatchTemplateFormat, (Get-LineCount($batchTemplateFormat))))
-    }
-
-    <#
-    .SYNOPSIS
-
-    Writes the table of files embedded into the script as a hashtable.
-    #>
-    function Write-FileTable
-    {
-        [void]$buffer.Append("`$files = @{")
+        [Parameter(Mandatory=$false, Position=3)][string]$sourceDirectory)
     
-        # Embedded files is optional.
-        if ($embeddedFiles -eq $null) 
-        {
-            $offset = 0
-            foreach ($file in $embeddedFiles)
-            {
-                if (-not $file.PSIsContainer)
-                {
-
-                    if ($file -ne $embeddedFiles[0])
-                    {
-                        [void]$buffer.Append(';')
-                    }
-
-                    [void]$buffer.Append('"')
-                    [void]$buffer.Append(($file | Resolve-Path -Relative))
-                    [void]$buffer.Append('"')
-                    [void]$buffer.Append('=')
-                    [void]$buffer.Append($offset)
-                    [void]$buffer.Append(",")
-                    [void]$buffer.Append($file.Length)
-
-                    $offset += $file.Length
-
-                }
-            }
-        }
-        [void]$buffer.Append("}`r`n")
-    }
-
-    <#
-    .SYNOPSIS
-
-    Writes the file size field to the script.
-    #>
-    function Write-FileSizeField
+    Trap
     {
-        $maxFileHeaderSizeLength = 20
-
-        [void]$buffer.Append("`$fileHeaderSize = ")
-
-        $finalFileSize = ($buffer.Length + 
-            [System.IO.FileInfo]::new("resources\clown-car-api.psm1").Length + 
-            ([System.IO.FileInfo]::new($entryScript).Length + $maxFileHeaderSizeLength) +
-            $exitScript.Length)
-
-        for ($i = $finalFileSize.ToString().Length; $i -lt $maxFileHeaderSizeLength; $i++)
-        {
-            [void]$buffer.Append('0')
-        }
-
-        [void]$buffer.Append($finalFileSize)
+        Write-Output "Unable to produce ClownCar batch script"
+        Break
     }
 
-    <#
-    .SYNOPSIS
+    # Load any needed dependencies.
+    Add-Environment
 
-    Writes the specified files to the script.
-    #>
-    function Write-FileArchive
-    {
-        foreach ($embeddedFile in $embeddedFiles)
-        {
-            try
-            {
-                Write-Output "Adding $embeddedFile to $outFile"
+    # Delete Temp file.
+    Remove-TemporaryFile $tmpZipFileName
 
-                $bytes = [System.IO.File]::ReadAllBytes(($embeddedFile | Resolve-Path -Relative))
+    # Create a ZIP archive.
+    Write-ZipArchiveFromDirectory $tmpZipFileName $sourceDirectory
 
-                [System.IO.FileStream]$fileStream = [System.IO.File]::Open($outFile, [System.IO.FileMode]::Append)
+    # Delete Windows Batch file.
+    Remove-TemporaryFile $outFile
 
-                foreach ($byte in $bytes)
-                {
-                    $fileStream.WriteByte($byte)
-                }
+    # Write Batch file header.
+    Write-BatchFileHeader $outFile
 
-                $fileStream.Close()
-            }
-            catch [UnauthorizedAccessException], [System.IO.IOException]
-            {
-                Write-Output "Unable to import $file."
-            }
-        }
-    }
+    # Encoded loader portion.
+    Write-Loader($outFile)
 
-    # Request FileInfo.
-    if ($embeddedFiles.Count -gt 0)
-    {
-        $embeddedFiles = $embeddedFiles | Get-Item
-    }
-
-    # Write script headers and variables.
-    Write-Header
-    Write-FileTable
-    Write-FileSizeField
-    $buffer.ToString() | Out-File $outFile -Encoding oem
-    
-    # Write the script API.
-    Get-Content "resources\clown-car-api.psm1" | Out-File $outFile -Encoding oem -Append
-
-    # Write the default entry point script.
-    Get-Content $entryScript | Out-File $outFile -Encoding oem -Append
-
-    # Write a trailing exit in case user forgets to terminate their script.
-    Write-Output $exitScript | Out-File $outFile -Encoding oem -Append
-
-    # Write all of the embedded files to the script.
-    Write-FileArchive
+    # Reads in the temporary ZIP archive and dumps it in the batch file.
+    Write-ZipClownCarSection $outFile
 }
