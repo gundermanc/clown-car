@@ -2,6 +2,13 @@
 # Packager API
 # By: Christian Gunderman
 
+function Write-ClownCar
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, Position=1)][string]$outFile,
+        [Parameter(Mandatory=$false, Position=3)][string]$sourceDirectory)
+
 # Temporary ZIP archive name.
 $tmpZipFileName = $MyInvocation.MyCommand.Path + "tmp.archive.zip"
 
@@ -43,123 +50,132 @@ Main
 ClownCarCleanupAndExit
 "@
 
-function Add-Environment
-{
-    Trap
+    <#
+    .SYNOPSIS
+
+    Sets up the required bits of the ClownCar environment.
+
+    #>
+    function Add-Environment
     {
-        Write-Output "Unable to load System.IO.Compression .NET assembly."
-        Break
-    }
-
-    Add-Type -Assembly System.IO.Compression.FileSystem -ErrorAction Stop
-}
-
-function Write-ZipArchiveFromDirectory($zipArchivePath, $sourcePath)
-{
-    Trap
-    {
-        Write-Output "Unable to zip files"
-        Break
-    }
-
-    try
-    {
-        $compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
-        [System.IO.Compression.ZipFile]::CreateFromDirectory($sourcePath, $zipArchivePath, $compressionLevel, $false)
-    }
-    catch [System.IO.IOException], [UnauthorizedAccessException]
-    {
-        Write-Output "Unable to create zip archive: " $_.Exception.Message
-        Break
-    }
-}
-
-function Remove-TemporaryFile($file)
-{
-    Trap
-    {
-        Write-Output "Unable to delete " $file
-        Break
-    }
-
-    if (Test-Path $file)
-    {
-        Remove-Item $file
-    }
-}
-
-function Get-LineCount
-{
-    [CmdletBinding()]
-    param([Parameter(Mandatory=$true, Position=1)][string]$string)
-
-    $count = 0
-    $Local:index = 0
-
-    while ($index -ne -1)
-    {
-        $index = $string.IndexOf([string]"`r`n", $Local:index + 1)
-
-        if ($Local:index -ne -1)
+        Trap
         {
-            $count++
+            Write-Output "Unable to load System.IO.Compression .NET assembly."
+            Break
+        }
+
+        Add-Type -Assembly System.IO.Compression.FileSystem -ErrorAction Stop
+    }
+
+    <#
+    .SYNOPSIS
+
+    Creates a ZIP archive with the name $zipArchivePath from the files
+    and directories contained in $sourcePath.
+
+    #>
+    function Write-ZipArchiveFromDirectory($zipArchivePath, $sourcePath)
+    {
+        Trap
+        {
+            Write-Output "Unable to zip files"
+            Break
+        }
+
+        try
+        {
+            $compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($sourcePath, $zipArchivePath, $compressionLevel, $false)
+        }
+        catch [System.IO.IOException], [UnauthorizedAccessException]
+        {
+            Write-Output "Unable to create zip archive: " $_.Exception.Message
+            Break
         }
     }
 
-    return $count
-}
+    <#
+    .SYNOPSIS
 
-function Write-BatchFileHeader($outFile)
-{
-    Trap
+    Deletes the specified file, if it exists.
+
+    #>
+    function Remove-TemporaryFile($file)
     {
-        Write-Output "Unable to write batch file header"
-        Break
+        Trap
+        {
+            Write-Output "Unable to delete " $file
+            Break
+        }
+
+        if (Test-Path $file)
+        {
+            Remove-Item $file
+        }
     }
 
-    $batchTemplate | Out-File -FilePath $outFile -Encoding oem
-}
+    <#
+    .SYNOPSIS
 
-function Write-Loader($outFile)
-{
-    Trap
+    Writes the batch file section of the output file. This section is the part that
+    bypasses Powershell security settings and runs the Powershell Loader.
+
+    #>
+    function Write-BatchFileHeader($outFile)
     {
-        Write-Output "Unable to write encoded loader portion"
-        Break
+        Trap
+        {
+            Write-Output "Unable to write batch file header"
+            Break
+        }
+
+        $batchTemplate | Out-File -FilePath $outFile -Encoding oem
     }
 
-    #$encoding = [System.Text.Encoding]::UTF8
+    <#
+    .SYNOPSIS
 
-    #$bytes = $encoding.GetBytes($encodedLoaderTemplate)
+    Writes the Powershell self-extractor and Main() loader portion of the output
+    file.
 
-    $loaderTemplate | Out-File -FilePath $outFile -Append -Encoding oem
-}
-
-function Write-ZipClownCarSection($outFile)
-{
-    Trap
+    #>
+    function Write-Loader($outFile)
     {
-        Write-Output "Unable to write Clown Car ZIP section or read temporary ZIP archive"
-        Break
+        Trap
+        {
+            Write-Output "Unable to write encoded loader portion"
+            Break
+        }
+
+        $loaderTemplate | Out-File -FilePath $outFile -Append -Encoding oem
     }
 
-    $bytes = [System.IO.File]::ReadAllBytes($tmpZipFileName)
+    <#
+    .SYNOPSIS
 
-    [Convert]::ToBase64String($bytes) | Out-File -FilePath $outFile -Append -Encoding oem
-}
+    Writes the ZIP section of the ClownCar file.
 
-function Write-ClownCar
-{
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$true, Position=1)][string]$outFile,
-        [Parameter(Mandatory=$false, Position=3)][string]$sourceDirectory)
+    #>
+    function Write-ZipClownCarSection($outFile)
+    {
+        Trap
+        {
+            Write-Output "Unable to write Clown Car ZIP section or read temporary ZIP archive"
+            Break
+        }
+
+        $bytes = [System.IO.File]::ReadAllBytes($tmpZipFileName)
+
+        [Convert]::ToBase64String($bytes) | Out-File -FilePath $outFile -Append -Encoding oem
+    }
     
+    # Error message if unable to proceed.
     Trap
     {
         Write-Output "Unable to produce ClownCar batch script"
         Break
     }
+
 
     # Load any needed dependencies.
     Add-Environment
@@ -168,17 +184,22 @@ function Write-ClownCar
     Remove-TemporaryFile $tmpZipFileName
 
     # Create a ZIP archive.
+    Write-Output "Creating ZIP archive..."
     Write-ZipArchiveFromDirectory $tmpZipFileName $sourceDirectory
 
     # Delete Windows Batch file.
     Remove-TemporaryFile $outFile
 
     # Write Batch file header.
+    Write-Output "Writing Windows batch file header..."
     Write-BatchFileHeader $outFile
 
-    # Encoded loader portion.
+    # Powershell extractor and Main() loader.
+    Write-Output "Writing Powershell ZIP self-extractor..."
+    Write-Output "Writing Main() loader..."
     Write-Loader($outFile)
 
     # Reads in the temporary ZIP archive and dumps it in the batch file.
+    Write-Loader "Writing ZIPPED file section..."
     Write-ZipClownCarSection $outFile
 }
