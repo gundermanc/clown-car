@@ -200,6 +200,6 @@ ClownCarCleanupAndExit
     Write-Loader($outFile)
 
     # Reads in the temporary ZIP archive and dumps it in the batch file.
-    Write-Loader "Writing ZIPPED file section..."
+    Write-Output "Writing ZIPPED file section..."
     Write-ZipClownCarSection $outFile
 }
