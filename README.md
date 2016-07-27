@@ -93,3 +93,7 @@ will fail in a less than helpful way (lots of red text). ClownCar scripts, howev
 are a single self extracting executable script and have a known path that all
 resources are extracted to. Because of this, changing the current directory never
 causes problems because the script always knows where to find its assets.
+
+## ChangeLog
+- v1.0: Initial release
+- v1.1: Fixed issue running under cmd.exe instead of Powershell.

@@ -15,7 +15,7 @@ $tmpZipFileName = $MyInvocation.MyCommand.Path + "tmp.archive.zip"
 # ** MAKE SURE THAT Skip param has the same number of lines as this block generates. **
 $batchTemplate = @"
 @echo off
-powershell.exe -ExecutionPolicy Bypass -Command `"`$__CC__pkgrArgs = '%*'.Split(' '); `$__CC__scriptName = '%0'; (Get-Content('%0') | Select -Skip 3) -Join [Environment]::NewLine | Invoke-Expression`"
+cmd.exe /C powershell.exe -ExecutionPolicy Bypass -Command `"`$__CC__pkgrArgs = '%*'.Split(' '); `$__CC__scriptName = '%0'; (Get-Content('%0') | Select -Skip 3) -Join [Environment]::NewLine | Invoke-Expression`"
 exit
 "@
 
