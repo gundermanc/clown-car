@@ -95,5 +95,6 @@ resources are extracted to. Because of this, changing the current directory neve
 causes problems because the script always knows where to find its assets.
 
 ## ChangeLog
-- v1.0: Initial release
+- v1.0: Initial release.
 - v1.1: Fixed issue running under cmd.exe instead of Powershell.
+- v1.2: Fixed issue where echo message was written to file.
