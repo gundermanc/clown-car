@@ -2,48 +2,60 @@
 # Packager API
 # By: Christian Gunderman
 
+<#
+.SYNOPSIS
+
+Creates a ClownCar script and writes it to the given output file, taking sources
+from the given source directory.
+
+#>
 function Write-ClownCar
 {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true, Position=1)][string]$outFile,
-        [Parameter(Mandatory=$false, Position=3)][string]$sourceDirectory)
+        [Parameter(Mandatory=$true, Position=2)][string]$sourceDirectory,
+        [Parameter(Mandatory=$false, Position=3)][bool]$hideWindow)
 
 # Temporary ZIP archive name.
 $tmpZipFileName = $MyInvocation.MyCommand.Path + "tmp.archive.zip"
 
+# Generate argument to set whether or not to hide the Window.
+if ($hideWindow)
+{
+    $hideWindowArg = "-WindowStyle Hidden"
+}
+
 # ** MAKE SURE THAT Skip param has the same number of lines as this block generates. **
 $batchTemplate = @"
 @echo off
-cmd.exe /C powershell.exe -ExecutionPolicy Bypass -Command `"`$__CC__pkgrArgs = '%*'.Split(' '); `$__CC__scriptName = '%0'; (Get-Content('%0') | Select -Skip 3) -Join [Environment]::NewLine | Invoke-Expression`"
+cmd.exe /C powershell.exe $hideWindowArg -ExecutionPolicy Bypass -Command `"`$__CC__pkgrArgs = '%*'.Split(' '); `$__CC__scriptName = '%0'; (Get-Content('%0') | Select -Skip 3) -Join [Environment]::NewLine | Invoke-Expression`"
 exit
 "@
 
 # ClownCar loader and API functions.
-# ** MAKE SURE THAT Skip param has the same number of lines as this block and the one above generates. **
+# ** Skip param above assumes that this will all be minified to a single line. **
+# ** As such, any functions here must be on a single line. **
 $loaderTemplate = @"
 Write-Output "Preparing...Please wait...May take a while"
 
 `$__CC__tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid())
 New-Item -ItemType Directory -Path (`$__CC__tmpDir) -Force | Out-Null
 `$__CC__zipPath = Join-Path `$__CC__tmpDir "tmp.archive.zip"
-[System.IO.File]::WriteAllBytes(`$__CC__zipPath, [Convert]::FromBase64String((Get-Content `$__CC__scriptName | Select -Skip 29)))
+[System.IO.File]::WriteAllBytes(`$__CC__zipPath, [Convert]::FromBase64String((Get-Content `$__CC__scriptName | Select -Skip 4)))
 Add-Type -Assembly System.IO.Compression.FileSystem -ErrorAction Stop
 [System.IO.Compression.ZipFile]::ExtractToDirectory(`$__CC__zipPath, `$__CC__tmpDir)
-`$__CC__mainPath = Join-Path `$__CC__tmpDir "main.psm1"
-Import-Module `$__CC__mainPath
 
 function Get-ClownCarDirectory { return `$__CC__tmpDir }
 function Get-ClownCarScriptName { return `$__CC__scriptName }
 function Get-ClownCarArguments { return `$__CC__pkgrArgs }
 function Get-ClownCarZipPath { return `$__CC__zipPath }
 function Get-ClownCarMainPath { return `$__CC__mainPath }
-function ClownCarCleanupAndExit
-{ 
-    Remove-Item -Recurse -Force `$__CC__tmpDir
-    exit
-}
+function ClownCarCleanupAndExit { Remove-Item -Recurse -Force `$__CC__tmpDir; Exit }
 function ClownCarExitWithoutCleanup { exit }
+
+`$__CC__mainPath = Join-Path `$__CC__tmpDir "main.psm1"
+Import-Module "`$__CC__mainPath"
 
 Main
 
@@ -147,7 +159,8 @@ ClownCarCleanupAndExit
             Break
         }
 
-        $loaderTemplate | Out-File -FilePath $outFile -Append -Encoding oem
+        $minifedLoaderTemplate = $loaderTemplate.Replace("`r", "").Replace("`n", ";")
+        $minifedLoaderTemplate | Out-File -FilePath $outFile -Append -Encoding oem
     }
 
     <#
