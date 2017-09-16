@@ -35,8 +35,11 @@ Before use, make sure that you have a Main.psm1 file in your chosen
 assets_dir with a Main() function. This is the entry point that the
 ClownCar extractor will call.
 
-Usage: clown-car [out_batch_file] [assets_dir]
+Usage: clown-car [out_batch_file] [assets_dir] [hide_window]
 
+  out_batch_file: the name of the batch file generated.
+  assets_dir: the directory of assets to pack.
+  hide_window: if appended, hides the Powershell window.
 "@
 
 # Import the packager API.
@@ -52,10 +55,10 @@ function Write-Help
     Write-Output $helpStr
 }
 
-if ($args.Count -eq 2)
+if ($args.Count -gt 1)
 {
     Write-Output "Building self extractor..."
-    Write-ClownCar $args[0] $args[1]
+    Write-ClownCar $args[0] $args[1] (($args[2] -ieq "hide_window"))
     Write-Output "Done"
     exit
 }

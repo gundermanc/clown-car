@@ -8,4 +8,4 @@
 cd ..
 
 :: Hello World Example
-clown-car.bat examples\hello-world.bat examples\hello-world
+clown-car.bat examples\hello-world.bat examples\hello-world hide_window

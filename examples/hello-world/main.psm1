@@ -21,17 +21,23 @@ function Main
     $clownCarZip = Get-ClownCarZipPath
     $clownCarMain = Get-ClownCarMainPath
 
-    Write-Output "Hello World!"
-    Write-Output "`n"
-    Write-Output "This message is coming from within the Main module of the ClownCar."
-    Write-Output "The ClownCar was extracted to: $clownCarDir" 
-    Write-Output "The ClownCar self extractor script is: $clownCarScript"
-    Write-Output "The ClownCar self extractor script received the following arguments $clownCarArguments" 
-    Write-Output "The ClownCar ZIP that was extracted into the directory is: $clownCarZip"
-    Write-Output "The ClownCar main module is located at: $clownCarMain"
-    Write-Output "`n"
-    Write-Output "By default, ClownCar will clean up the extracted directory when Main()"
-    Write-Output "returns, but you can optionally clean it up manually with ClownCarCleanupAndExit()"
-    Write-Output "For debugging purposes you can use ClownCarExitWithoutCleanup and ClownCar will"
-    Write-Output "terminate immediately without deleting the extracted directory."
+    $outputStr = @"
+Hello World!
+
+This message is coming from within the Main module of the ClownCar.
+The ClownCar was extracted to: $clownCarDir
+The ClownCar self extractor script is: $clownCarScript"
+The ClownCar self extractor script received the following arguments $clownCarArguments
+The ClownCar ZIP that was extracted into the directory is: $clownCarZip
+The ClownCar main module is located at: $clownCarMain
+
+By default, ClownCar will clean up the extracted directory when Main()
+returns, but you can optionally clean it up manually with ClownCarCleanupAndExit()
+For debugging purposes you can use ClownCarExitWithoutCleanup and ClownCar will
+terminate immediately without deleting the extracted directory.
+"@
+
+    Add-Type -Assembly System.Windows.Forms -ErrorAction Stop
+
+    [System.Windows.Forms.MessageBox]::Show($outputStr)
 }
