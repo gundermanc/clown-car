@@ -18,7 +18,7 @@ function Write-ClownCar
         [Parameter(Mandatory=$false, Position=3)][bool]$hideWindow)
 
 # Temporary ZIP archive name.
-$tmpZipFileName = $MyInvocation.MyCommand.Path + "tmp.archive.zip"
+$tmpZipFileName = (Join-Path (Convert-Path .) "tmp.archive.zip")
 
 # Generate argument to set whether or not to hide the Window.
 if ($hideWindow)
