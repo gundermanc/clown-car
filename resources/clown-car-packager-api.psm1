@@ -215,4 +215,7 @@ ClownCarCleanupAndExit
     # Reads in the temporary ZIP archive and dumps it in the batch file.
     Write-Output "Writing ZIPPED file section..."
     Write-ZipClownCarSection $outFile
+
+    # Delete Temp file.
+    Remove-TemporaryFile $tmpZipFileName
 }
